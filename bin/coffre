@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+set -euo pipefail
+export PATH="$PATH:/usr/sbin:/sbin"
+
+coffre_script="$(readlink -f "${BASH_SOURCE[0]}")"
+coffre_racine="$(cd "$(dirname "$coffre_script")/.." && pwd)"
+
+source "$coffre_racine/lib/core.sh"
+source "$coffre_racine/lib/state.sh"
+source "$coffre_racine/lib/vault.sh"
+source "$coffre_racine/lib/gpgops.sh"
+source "$coffre_racine/lib/sshops.sh"
+
+afficher_aide() {
+    cat <<'AIDE'
+coffre - environnement chiffré LUKS pour configurations et clés SSH/GPG
+
+Usage :
+  coffre install                               crée le conteneur chiffré de 5 Go
+  coffre open                                  déverrouille et monte le coffre
+  coffre close                                 démonte et referme le coffre
+  coffre gpg generate                          génère une paire de clés GPG
+  coffre gpg export-pub <id>                   exporte une clé publique vers le coffre
+  coffre gpg export-priv <id>                  exporte une clé privée vers le coffre
+  coffre gpg import-pub <fichier|empreinte>    importe une clé publique du coffre
+  coffre gpg import-priv <fichier|empreinte>   importe une clé privée du coffre
+  coffre ssh template                          crée la configuration SSH type et l'alias
+  coffre ssh import [host]                      importe un host depuis ~/.ssh/config
+  coffre help                                  affiche cette aide
+AIDE
+}
+
+principal() {
+    local commande="${1:-help}"; [[ $# -gt 0 ]] && shift
+    case "$commande" in
+        install)        installer_coffre ;;
+        open)           ouvrir_coffre ;;
+        close)          fermer_coffre ;;
+        gpg)            commande_gpg "$@" ;;
+        ssh)            commande_ssh "$@" ;;
+        help|-h|--help) afficher_aide ;;
+        *)              afficher_aide >&2; erreur "Commande inconnue : $commande" ;;
+    esac
+}
+
+principal "$@"
